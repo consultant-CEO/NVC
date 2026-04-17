@@ -23,6 +23,7 @@ export default function App() {
   const [choice, setChoice] = useState<NVCChoice | null>(null);
   const [vocabType, setVocabType] = useState<'met' | 'notMet'>('notMet');
   const [slideIndex, setSlideIndex] = useState(1);
+  const [showSlideUI, setShowSlideUI] = useState(true);
 
   const t = translations[lang];
 
@@ -157,6 +158,11 @@ export default function App() {
         >
           <PlayCircle className="w-5 h-5" /> {t.presentation}
         </button>
+        <div className="pt-2">
+          <span className="text-[10px] font-mono font-bold text-stone-300 bg-stone-50 px-3 py-1 rounded-full border border-stone-100">
+            V1.2.5
+          </span>
+        </div>
       </Card>
     </div>
   );
@@ -415,97 +421,6 @@ export default function App() {
     );
   };
 
-  const renderPresentation = () => {
-    const totalSlides = 10;
-    const baseUrl = 'https://consultant-ceo.github.io/NVC/pic/';
-    
-    // Default to .JPG as user mentioned, but we can add fallback logic
-    const getImgUrl = (index: number, ext: string) => 
-      `${baseUrl}${String(index).padStart(3, '0')}.${ext}`;
-
-    const nextSlide = () => {
-      if (slideIndex < totalSlides) setSlideIndex(prev => prev + 1);
-    };
-
-    const prevSlide = () => {
-      if (slideIndex > 1) setSlideIndex(prev => prev - 1);
-    };
-
-    return (
-      <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden select-none">
-        {/* Header Overlay */}
-        <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
-          <button 
-            onClick={() => setScreen('home')} 
-            className="text-white hover:text-teal-400 transition flex items-center gap-1 pointer-events-auto bg-black/20 px-3 py-1.5 rounded-full backdrop-blur-sm"
-          >
-            <ArrowLeft className="w-5 h-5"/> {t.back}
-          </button>
-          <div className="text-sm font-mono tracking-widest text-white bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
-            {slideIndex} / {totalSlides}
-          </div>
-        </div>
-
-        {/* Image Container */}
-        <div className="flex-1 relative flex items-center justify-center bg-stone-900 group">
-          <motion.div
-            key={slideIndex}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            onDragEnd={(_, info) => {
-              if (info.offset.x < -100) nextSlide();
-              else if (info.offset.x > 100) prevSlide();
-            }}
-            className="w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
-          >
-            <img 
-              src={getImgUrl(slideIndex, 'JPG')} 
-              alt={`Slide ${slideIndex}`} 
-              className="max-w-full max-h-full object-contain pointer-events-none"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                // If .JPG fails, try .jpg (lowercase)
-                if (target.src.endsWith('.JPG')) {
-                  target.src = getImgUrl(slideIndex, 'jpg');
-                }
-              }}
-            />
-          </motion.div>
-
-          {/* Nav Controls Overlay - Hidden on touch, visible on hover/desktop or tap */}
-          <div className="absolute inset-y-0 left-0 w-1/6 flex items-center justify-start pl-4 md:opacity-0 group-hover:opacity-100 transition-opacity">
-            {slideIndex > 1 && (
-              <button onClick={prevSlide} className="p-3 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-md transition shadow-lg">
-                <ChevronLeft className="w-8 h-8" />
-              </button>
-            )}
-          </div>
-          <div className="absolute inset-y-0 right-0 w-1/6 flex items-center justify-end pr-4 md:opacity-0 group-hover:opacity-100 transition-opacity">
-            {slideIndex < totalSlides && (
-              <button onClick={nextSlide} className="p-3 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-md transition shadow-lg">
-                <ChevronRight className="w-8 h-8" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Progress bar at the very bottom */}
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
-          <motion.div 
-            className="h-full bg-teal-500"
-            initial={false}
-            animate={{ width: `${(slideIndex / totalSlides) * 100}%` }}
-          />
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-white select-none pointer-events-auto">
       <AnimatePresence mode="wait">
@@ -523,9 +438,183 @@ export default function App() {
           {screen === 'result' && renderResult()}
           {screen === 'vocab' && renderVocab()}
           {screen === 'summary' && renderSummary()}
-          {screen === 'presentation' && renderPresentation()}
+          {screen === 'presentation' && (
+            <Presentation 
+              t={t} 
+              lang={lang} 
+              screen={screen} 
+              setScreen={setScreen} 
+              slideIndex={slideIndex} 
+              setSlideIndex={setSlideIndex}
+              showSlideUI={showSlideUI}
+              setShowSlideUI={setShowSlideUI}
+            />
+          )}
         </motion.div>
       </AnimatePresence>
+    </div>
+  );
+}
+
+// Separate Component to prevent re-render flickers
+function Presentation({ 
+  t, lang, screen, setScreen, slideIndex, setSlideIndex, showSlideUI, setShowSlideUI 
+}: any) {
+  const totalSlides = 10;
+  const baseUrl = 'https://consultant-ceo.github.io/NVC/pic/';
+  const rawUrl = 'https://raw.githubusercontent.com/consultant-CEO/NVC/main/pic/';
+  
+  // Auto-hide UI timer - Updated to 5 seconds
+  useEffect(() => {
+    if (screen !== 'presentation') return;
+    
+    const timer = setTimeout(() => {
+      setShowSlideUI(false);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [slideIndex, showSlideUI, screen, setShowSlideUI]);
+
+  const handleInteraction = () => {
+    setShowSlideUI(true);
+  };
+
+  // Helper to get image URL from different sources
+  const getImgUrl = (index: number, ext: string, source: 'pages' | 'raw' = 'pages') => {
+    const fileName = `${String(index).padStart(3, '0')}.${ext}`;
+    return source === 'pages' ? `${baseUrl}${fileName}` : `${rawUrl}${fileName}`;
+  };
+
+  const nextSlide = () => {
+    handleInteraction();
+    if (slideIndex < totalSlides) setSlideIndex(prev => prev + 1);
+  };
+
+  const prevSlide = () => {
+    handleInteraction();
+    if (slideIndex > 1) setSlideIndex(prev => prev - 1);
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden select-none cursor-none shadow-2xl"
+      style={{ cursor: showSlideUI ? 'auto' : 'none' }}
+      onMouseMove={handleInteraction}
+      onClick={handleInteraction}
+      onTouchStart={handleInteraction}
+    >
+      {/* Header Overlay */}
+      <AnimatePresence>
+        {showSlideUI && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-[60] bg-gradient-to-b from-black/90 to-transparent pointer-events-none"
+          >
+            <button 
+              onClick={(e) => { e.stopPropagation(); setScreen('home'); }} 
+              className="text-white hover:text-teal-400 transition flex items-center gap-2 pointer-events-auto bg-black/60 px-6 py-3 rounded-full backdrop-blur-xl border border-white/20 shadow-2xl active:scale-95"
+            >
+              <ArrowLeft className="w-5 h-5"/> {t.back}
+            </button>
+            <div className="text-sm font-mono tracking-widest text-white bg-black/60 px-5 py-2.5 rounded-full backdrop-blur-xl border border-white/10 shadow-xl">
+              {slideIndex} / {totalSlides}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Image Container */}
+      <div className="flex-1 relative flex items-center justify-center bg-stone-950">
+        <motion.div
+          key={slideIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.x < -100) nextSlide();
+            else if (info.offset.x > 100) prevSlide();
+          }}
+          className="w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
+        >
+          <img 
+            src={getImgUrl(slideIndex, 'JPG', 'pages')} 
+            alt={`Slide ${slideIndex}`} 
+            className="max-w-full max-h-full object-contain pointer-events-none"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              const currentSrc = target.src;
+              
+              if (currentSrc.includes(baseUrl)) {
+                if (currentSrc.endsWith('.JPG')) {
+                  target.src = getImgUrl(slideIndex, 'jpg', 'pages');
+                } else {
+                  target.src = getImgUrl(slideIndex, 'JPG', 'raw');
+                }
+              } else if (currentSrc.includes(rawUrl)) {
+                if (currentSrc.endsWith('.JPG')) {
+                  target.src = getImgUrl(slideIndex, 'jpg', 'raw');
+                }
+              }
+            }}
+          />
+        </motion.div>
+
+        {/* Nav Controls Overlay */}
+        <AnimatePresence>
+          {showSlideUI && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="absolute inset-y-0 left-0 w-1/4 flex items-center justify-start pl-8 z-[55] pointer-events-none"
+              >
+                {slideIndex > 1 && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); prevSlide(); }} 
+                    className="p-5 bg-black/60 hover:bg-black/80 rounded-full text-white backdrop-blur-xl transition shadow-3xl border border-white/20 active:scale-90 pointer-events-auto"
+                  >
+                    <ChevronLeft className="w-10 h-10" />
+                  </button>
+                )}
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="absolute inset-y-0 right-0 w-1/4 flex items-center justify-end pr-8 z-[55] pointer-events-none"
+              >
+                {slideIndex < totalSlides && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); nextSlide(); }} 
+                    className="p-5 bg-black/60 hover:bg-black/80 rounded-full text-white backdrop-blur-xl transition shadow-3xl border border-white/20 active:scale-90 pointer-events-auto"
+                  >
+                    <ChevronRight className="w-10 h-10" />
+                  </button>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-0 w-full h-2 bg-white/5 z-[60]">
+        <motion.div 
+          className="h-full bg-teal-500 shadow-[0_0_15px_rgba(20,184,166,0.6)]"
+          initial={false}
+          animate={{ 
+            width: `${(slideIndex / totalSlides) * 100}%`,
+            opacity: showSlideUI ? 1 : 0.2
+          }}
+        />
+      </div>
     </div>
   );
 }
