@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Heart, BookOpen, ArrowRight, RefreshCw, 
   CheckCircle2, AlertCircle, Loader2, List, Globe, ArrowLeft, 
-  ShieldAlert, Scale
+  ShieldAlert, Scale, PlayCircle, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateNVCScenario, NVCScenario, NVCChoice } from './services/gemini';
@@ -10,7 +10,7 @@ import { translations, feelingsDatabase, RESULT_TITLES } from './constants/nvcDa
 import { Button, Card } from './components/common/UI';
 import { TTS } from './components/common/TTS';
 
-type Screen = 'home' | 'input' | 'game' | 'result' | 'vocab' | 'summary';
+type Screen = 'home' | 'input' | 'game' | 'result' | 'vocab' | 'summary' | 'presentation';
 
 export default function App() {
   const [lang, setLang] = useState<'zh' | 'en'>('zh');
@@ -21,6 +21,7 @@ export default function App() {
   const [scenario, setScenario] = useState<NVCScenario | null>(null);
   const [choice, setChoice] = useState<NVCChoice | null>(null);
   const [vocabType, setVocabType] = useState<'met' | 'notMet'>('notMet');
+  const [slideIndex, setSlideIndex] = useState(1);
 
   const t = translations[lang];
 
@@ -149,6 +150,12 @@ export default function App() {
             <List className="w-5 h-5 text-teal-500"/> {t.learningSummary}
           </button>
         </div>
+        <button 
+          onClick={() => { setSlideIndex(1); setScreen('presentation'); }} 
+          className="w-full p-4 bg-teal-50 border border-teal-100 rounded-xl text-teal-700 font-bold hover:bg-teal-100 transition flex items-center justify-center gap-2 shadow-sm"
+        >
+          <PlayCircle className="w-5 h-5" /> {t.presentation}
+        </button>
       </Card>
     </div>
   );
@@ -407,6 +414,87 @@ export default function App() {
     );
   };
 
+  const renderPresentation = () => {
+    const totalSlides = 10;
+    const baseUrl = 'https://consultant-ceo.github.io/NVC/pic/';
+    const currentImg = `${baseUrl}${String(slideIndex).padStart(3, '0')}.jpg`;
+
+    const nextSlide = () => {
+      if (slideIndex < totalSlides) setSlideIndex(prev => prev + 1);
+    };
+
+    const prevSlide = () => {
+      if (slideIndex > 1) setSlideIndex(prev => prev - 1);
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden select-none">
+        {/* Header Overlay */}
+        <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
+          <button 
+            onClick={() => setScreen('home')} 
+            className="text-white hover:text-teal-400 transition flex items-center gap-1 pointer-events-auto bg-black/20 px-3 py-1.5 rounded-full backdrop-blur-sm"
+          >
+            <ArrowLeft className="w-5 h-5"/> {t.back}
+          </button>
+          <div className="text-sm font-mono tracking-widest text-white bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
+            {slideIndex} / {totalSlides}
+          </div>
+        </div>
+
+        {/* Image Container */}
+        <div className="flex-1 relative flex items-center justify-center bg-stone-900 group">
+          <motion.div
+            key={slideIndex}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -100) nextSlide();
+              else if (info.offset.x > 100) prevSlide();
+            }}
+            className="w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
+          >
+            <img 
+              src={currentImg} 
+              alt={`Slide ${slideIndex}`} 
+              className="max-w-full max-h-full object-contain pointer-events-none"
+              referrerPolicy="no-referrer"
+            />
+          </motion.div>
+
+          {/* Nav Controls Overlay - Hidden on touch, visible on hover/desktop or tap */}
+          <div className="absolute inset-y-0 left-0 w-1/6 flex items-center justify-start pl-4 md:opacity-0 group-hover:opacity-100 transition-opacity">
+            {slideIndex > 1 && (
+              <button onClick={prevSlide} className="p-3 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-md transition shadow-lg">
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+            )}
+          </div>
+          <div className="absolute inset-y-0 right-0 w-1/6 flex items-center justify-end pr-4 md:opacity-0 group-hover:opacity-100 transition-opacity">
+            {slideIndex < totalSlides && (
+              <button onClick={nextSlide} className="p-3 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-md transition shadow-lg">
+                <ChevronRight className="w-8 h-8" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Progress bar at the very bottom */}
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
+          <motion.div 
+            className="h-full bg-teal-500"
+            initial={false}
+            animate={{ width: `${(slideIndex / totalSlides) * 100}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white select-none pointer-events-auto">
       <AnimatePresence mode="wait">
@@ -424,6 +512,7 @@ export default function App() {
           {screen === 'result' && renderResult()}
           {screen === 'vocab' && renderVocab()}
           {screen === 'summary' && renderSummary()}
+          {screen === 'presentation' && renderPresentation()}
         </motion.div>
       </AnimatePresence>
     </div>
