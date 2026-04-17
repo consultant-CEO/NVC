@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Noto Serif TC", "Playfair Display", serif;
+}
+
+html, body {
+  margin: 0; 
+  padding: 0;
+  width: 100%;
+  background-color: #ffffff;
+  -webkit-overflow-scrolling: touch;
+  height: auto;
+  min-height: 100%;
+  overscroll-behavior-y: auto;
+  overflow-x: hidden; 
+}
+
+/* Hide scrollbars but keep functionality */
+html::-webkit-scrollbar, body::-webkit-scrollbar { 
+  display: none; 
+}
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#root { 
+  width: 100%;
+  min-height: 100vh;
+  display: flex; 
+  flex-direction: column; 
+  box-sizing: border-box; 
+}
+
+.fade-in { 
+  animation: fadeIn 0.5s ease-in; 
+}
+
+@keyframes fadeIn { 
+  from { opacity: 0; } 
+  to { opacity: 1; } 
+}
+
+.active-scale:active { 
+  transform: scale(0.95); 
+}
+
+/* Custom transitions for screen components */
+.screen-transition {
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
