@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// Version: 1.0.1 - Added Presentation & Asset Management
 import { 
   Heart, BookOpen, ArrowRight, RefreshCw, 
   CheckCircle2, AlertCircle, Loader2, List, Globe, ArrowLeft, 
