@@ -25,6 +25,38 @@ export default function App() {
   const t = translations[lang];
 
   useEffect(() => {
+    // Disable right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    // Disable copy
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
+
+    // Disable keyboard shortcuts (Ctrl+C, Ctrl+S, Ctrl+U, etc.)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.ctrlKey || e.metaKey) && 
+        (e.key === 'c' || e.key === 's' || e.key === 'u' || e.key === 'p' || e.key === 'i' || e.key === 'j')
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
     window.scrollTo(0, 0);
     setErrorMsg('');
   }, [screen]);
@@ -344,7 +376,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white select-none pointer-events-auto">
       <AnimatePresence mode="wait">
         <motion.div
           key={screen}
