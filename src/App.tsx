@@ -417,7 +417,10 @@ export default function App() {
   const renderPresentation = () => {
     const totalSlides = 10;
     const baseUrl = 'https://consultant-ceo.github.io/NVC/pic/';
-    const currentImg = `${baseUrl}${String(slideIndex).padStart(3, '0')}.jpg`;
+    
+    // Default to .JPG as user mentioned, but we can add fallback logic
+    const getImgUrl = (index: number, ext: string) => 
+      `${baseUrl}${String(index).padStart(3, '0')}.${ext}`;
 
     const nextSlide = () => {
       if (slideIndex < totalSlides) setSlideIndex(prev => prev + 1);
@@ -459,10 +462,17 @@ export default function App() {
             className="w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
           >
             <img 
-              src={currentImg} 
+              src={getImgUrl(slideIndex, 'JPG')} 
               alt={`Slide ${slideIndex}`} 
               className="max-w-full max-h-full object-contain pointer-events-none"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                // If .JPG fails, try .jpg (lowercase)
+                if (target.src.endsWith('.JPG')) {
+                  target.src = getImgUrl(slideIndex, 'jpg');
+                }
+              }}
             />
           </motion.div>
 
