@@ -41,6 +41,11 @@ jobs:
         run: npm run build
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Copy manual assets
+        run: |
+          if [ -d "pic" ]; then
+            cp -r pic dist/
+          fi
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
