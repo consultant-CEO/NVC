@@ -61,12 +61,44 @@ export default function App() {
     setErrorMsg('');
   }, [screen]);
 
+  const checkRateLimit = () => {
+    const LIMIT = 10;
+    const DURATION = 3600000; // 1 hour
+    const now = Date.now();
+    const history = JSON.parse(localStorage.getItem('nvc_usage') || '[]');
+    const recentHistory = history.filter((t: number) => now - t < DURATION);
+
+    if (recentHistory.length >= LIMIT) {
+      const oldest = recentHistory[0];
+      const waitMs = DURATION - (now - oldest);
+      const minutes = Math.ceil(waitMs / 60000);
+      return { exceeded: true, minutes };
+    }
+
+    return { exceeded: false, history: recentHistory };
+  };
+
   const handleGenerate = async () => {
     if (!input.trim()) return;
+
+    const limitCheck = checkRateLimit();
+    if (limitCheck.exceeded) {
+      const msg = lang === 'zh' 
+        ? `您已達到每小時 ${10} 次的限制。請等待約 ${limitCheck.minutes} 分鐘後再試。`
+        : `You've reached the limit of 10 uses per hour. Please wait about ${limitCheck.minutes} minute(s).`;
+      setErrorMsg(msg);
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
     try {
       const result = await generateNVCScenario(input, lang);
+      
+      // Record usage only on success
+      const history = limitCheck.history || [];
+      localStorage.setItem('nvc_usage', JSON.stringify([...history, Date.now()]));
+      
       setScenario(result);
       setScreen('game');
       setChoice(null);
