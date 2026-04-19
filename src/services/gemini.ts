@@ -44,6 +44,11 @@ export async function generateNVCScenario(input: string, lang: 'zh' | 'en'): Pro
     
     Task: Generate a specific conflict scenario based on the user's input, and provide 5 distinct types of responses.
     
+    **CRITICAL CONTEXT CONSISTENCY**:
+    The "choices" MUST be strictly derived from the "situation" and "trigger". 
+    DO NOT mention unrelated topics (e.g., if the situation is about money, DO NOT mention grades; if the situation is about work, DO NOT mention health).
+    Each choice must feel like a direct response to the "trigger" words.
+
     **CRITICAL REQUIREMENT FOR NVC CHOICE**:
     The "NVC" choice MUST be a complete sentence that explicitly includes ALL four components:
     1. Observation (Fact without judgment)
