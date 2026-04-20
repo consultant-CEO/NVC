@@ -1,7 +1,7 @@
 {
   "name": "NVC Helper - 非暴力溝通助手",
   "description": "一個幫助使用者學習與練習非暴力溝通 (NVC) 的互動網站，包含 AI 場景練習、四要素教學與感受提示詞庫。",
-  "version": "1.3.7",
+  "version": "1.3.9",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
