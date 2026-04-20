@@ -160,7 +160,7 @@ export default function App() {
         </button>
         <div className="pt-2">
           <span className="text-[10px] font-mono font-bold text-stone-300 bg-stone-50 px-3 py-1 rounded-full border border-stone-100">
-            V1.2.7
+            V1.2.8
           </span>
         </div>
       </Card>
