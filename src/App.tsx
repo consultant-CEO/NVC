@@ -152,9 +152,9 @@ export default function App() {
         </div>
         <div className="pt-2">
           <span className="text-[10px] font-mono font-bold text-stone-300 bg-stone-50 px-3 py-1 rounded-full border border-stone-100">
-            V1.6.0
+            V1.6.1
           </span>
-          {/* Version 1.6.0: Gemini 4-Tier Model Fallback & CORS Bridge */}
+          {/* Version 1.6.1: Added custom Heart SVG favicon for browser tabs and bookmarks */}
         </div>
       </Card>
     </div>
