@@ -33,9 +33,47 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
+declare const __GEMINI_API_KEY__: string | undefined;
+
+export function getClientApiKey(): string {
+  // 1. Build-time injected from GitHub Secrets / .env via Vite define
+  let key = '';
+  try {
+    key = process.env.GEMINI_API_KEY || '';
+  } catch {
+    key = '';
+  }
+
+  if (!key && typeof __GEMINI_API_KEY__ !== 'undefined') {
+    key = __GEMINI_API_KEY__ || '';
+  }
+
+  // 2. Check localStorage & URL parameter for instant testing on GitHub Pages
+  if (typeof window !== 'undefined') {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlKey = urlParams.get('key') || urlParams.get('gemini_key');
+      if (urlKey && urlKey.trim()) {
+        localStorage.setItem('GEMINI_API_KEY', urlKey.trim());
+        key = urlKey.trim();
+      } else if (!key || key.trim() === '') {
+        const localKey = localStorage.getItem('GEMINI_API_KEY');
+        if (localKey && localKey.trim()) {
+          key = localKey.trim();
+        }
+      }
+    } catch {
+      // Ignore in restricted environments
+    }
+  }
+
+  return key ? key.trim() : '';
+}
+
 const CLIENT_MODEL_CHAIN = [
   "gemini-3.8-flash",      // 主力旗艦 (深度推理)
   "gemini-3.1-flash-lite", // 輕量降級 (高吞吐、低延遲)
+  "gemini-3.6-flash",      // 次世代高效旗艦備援
   "gemini-2.5-flash",      // 標準備援
   "gemini-2.5-flash-lite", // 極限低延遲備援
   "gemini-2.0-flash",      // 穩健相容備援
@@ -151,15 +189,15 @@ export async function generateNVCScenario(input: string, lang: 'zh' | 'en'): Pro
     window.location.protocol === 'file:'
   );
 
-  const clientApiKey = typeof process !== 'undefined' ? (process.env.GEMINI_API_KEY || '') : '';
+  const clientApiKey = getClientApiKey();
 
-  // On GitHub Pages or static hosts, execute directly on client with 4-tier model fallback
+  // On GitHub Pages or static hosts, execute directly on client with multi-tier model fallback
   if (isStaticHost) {
     if (!clientApiKey || clientApiKey.trim() === '') {
       throw new Error(
         lang === 'zh'
-          ? "偵測到您正在 GitHub Pages 靜態網站運行。請確認您的 GitHub 倉庫已在 Settings > Secrets and variables > Actions 中設定 GEMINI_API_KEY，以供自動構建時注入。"
-          : "Running on GitHub Pages. Please configure GEMINI_API_KEY in your GitHub Repository Secrets."
+          ? "未偵測到有效的 GEMINI_API_KEY。若您剛在 GitHub Secrets 加入金鑰，請至 GitHub 倉庫 Actions 分頁重新執行一次「Deploy static content to Pages」部署，或直接在網址後方加上 ?key=您的金鑰 即可立即在瀏覽器中啟用。"
+          : "GEMINI_API_KEY not found. Please re-run GitHub Actions deployment or append ?key=YOUR_KEY to the URL."
       );
     }
     return generateClientSideWithFallback(input, lang, clientApiKey);

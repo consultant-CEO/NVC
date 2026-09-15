@@ -28,6 +28,7 @@ async function startServer() {
   const MODEL_CHAIN = [
     "gemini-3.8-flash",      // 主力旗艦 (深度推理)
     "gemini-3.1-flash-lite", // 輕量降級 (高吞吐、低延遲、寬裕配額)
+    "gemini-3.6-flash",      // 次世代高效旗艦備援
     "gemini-2.5-flash",      // 標準備援
     "gemini-2.5-flash-lite"  // 極限低延遲備援
   ];
