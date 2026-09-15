@@ -1,6 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
-
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export interface NVCChoice {
   type: 'violent' | 'passive' | 'comparison' | 'blackmail' | 'nvc';
@@ -33,80 +30,39 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-export async function generateNVCScenario(input: string, lang: 'zh' | 'en'): Promise<NVCScenario> {
-  const langInstruction = lang === 'zh' 
-    ? "Output in Traditional Chinese (繁體中文) for all content." 
-    : "Output in English for all content.";
-
-  const prompt = `
-    You are an expert in Nonviolent Communication (NVC) based on Marshall B. Rosenberg's principles.
-    ${langInstruction}
-    
-    Task: Generate a specific conflict scenario based on the user's input, and provide 5 distinct types of responses.
-    
-    **CRITICAL CONTEXT CONSISTENCY**:
-    The "choices" MUST be strictly derived from the "situation" and "trigger". 
-    DO NOT mention unrelated topics (e.g., if the situation is about money, DO NOT mention grades; if the situation is about work, DO NOT mention health).
-    Each choice must feel like a direct response to the "trigger" words.
-
-    **CRITICAL REQUIREMENT FOR NVC CHOICE**:
-    The "NVC" choice MUST be a complete sentence that explicitly includes ALL four components:
-    1. Observation (Fact without judgment)
-    2. Feeling (Emotion, not thought)
-    3. Need (Universal value/longing)
-    4. Request (Specific, doable action)
-    The text of the NVC choice must MATCH the "nvcAnalysis" fields exactly.
-
-    **GENERATE 5 TYPES OF RESPONSES**:
-    1. **Violent/Jackal (暴力/指責)**: Judging, blaming, or attacking the other person.
-    2. **Passive/Turtle (被動/退縮)**: Denying own needs, self-blaming, or avoiding conflict.
-    3. **Comparison (比較)**: Comparing the person negatively to others.
-    4. **Emotional Blackmail (情緒勒索)**: Using guilt, fear, or obligation.
-    5. **NVC/Giraffe (非暴力溝通)**: Strictly OFNR format. Compassionate and clear.
-
-    User Input Conflict: "${input}"
-
-    **JSON OUTPUT FORMAT**:
-    Return strict JSON.
-    {
-      "id": "ai-gen",
-      "title": "Short Topic Title (Max 10 chars)",
-      "situation": "Context of what happened (approx 100 chars)",
-      "trigger": "The specific trigger event/words",
-      "choices": [
-        { "type": "violent", "text": "...", "feedback": "Analysis of why this is violent", "resultTitle": "Disconnected" },
-        { "type": "passive", "text": "...", "feedback": "Analysis of why this is passive", "resultTitle": "Suppressed" },
-        { "type": "comparison", "text": "...", "feedback": "Analysis of comparison language", "resultTitle": "Resentment" },
-        { "type": "blackmail", "text": "...", "feedback": "Analysis of emotional manipulation", "resultTitle": "Guilt & Fear" },
-        { "type": "nvc", "text": "...", "feedback": "Analysis of OFNR components", "resultTitle": "Connection" }
-      ],
-      "nvcAnalysis": {
-        "observation": "...", "feeling": "...", "need": "...", "request": "..."
-      }
+// Dynamic API endpoint resolver (CORS Bridge for GitHub Pages or static frontend hosts)
+function getApiEndpoint(): string {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // When running on GitHub Pages or standalone external frontend
+    if (hostname.includes('github.io')) {
+      return 'https://ais-pre-pzqtwrdnelptigyerdv3kg-163051268893.asia-northeast1.run.app/api/generate';
     }
-  `;
-
-  try {
-    const response = await genAI.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.7
-      }
-    });
-
-    const text = response.text.trim();
-    const jsonResponse = JSON.parse(text);
-    
-    if (jsonResponse.choices) {
-      jsonResponse.choices.forEach((c: any) => { c.isNVC = (c.type === 'nvc'); });
-      jsonResponse.choices = shuffleArray(jsonResponse.choices);
-    }
-    
-    return jsonResponse;
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw new Error("Failed to generate scenario");
   }
+  return '/api/generate';
+}
+
+export async function generateNVCScenario(input: string, lang: 'zh' | 'en'): Promise<NVCScenario> {
+  const endpoint = getApiEndpoint();
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ input, lang }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to generate scenario");
+  }
+
+  const jsonResponse = await response.json();
+  
+  if (jsonResponse.choices) {
+    jsonResponse.choices.forEach((c: any) => { c.isNVC = (c.type === 'nvc'); });
+    jsonResponse.choices = shuffleArray(jsonResponse.choices);
+  }
+  
+  return jsonResponse;
 }
